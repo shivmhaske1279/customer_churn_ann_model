@@ -1,0 +1,4 @@
+flask
+keras
+tf-keras
+numpy
