@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Network Classifier</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="max-w-2xl w-full bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-6 md:p-8">
+    
+    <!-- Header -->
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+        AI Model Predictor
+      </h1>
+      <p class="text-slate-400 text-sm mt-2">
+        Sequential Keras Neural Network (10 Features Input)
+      </p>
+    </div>
+
+    <!-- Prediction Form -->
+    <form id="prediction-form" class="space-y-6">
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-3">
+          Input Feature Values (10 numerical values):
+        </label>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <!-- 10 Feature Inputs -->
+          <script>
+            for (let i = 1; i <= 10; i++) {
+              document.write(`
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">X${i}</label>
+                  <input type="number" step="any" required name="feature_${i}" value="0.0" 
+                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition">
+                </div>
+              `);
+            }
+          </script>
+        </div>
+      </div>
+
+      <button type="submit" id="submit-btn" 
+        class="w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 font-semibold rounded-xl transition duration-200 shadow-lg shadow-cyan-500/20 active:scale-[0.99]">
+        Run Prediction
+      </button>
+    </form>
+
+    <!-- Result Display -->
+    <div id="result-card" class="hidden mt-8 p-5 bg-slate-900 rounded-xl border border-slate-700">
+      <h2 class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2">Prediction Output</h2>
+      
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <span class="text-sm text-slate-400">Class Decision:</span>
+          <span id="predicted-class" class="text-2xl font-bold ml-2">--</span>
+        </div>
+        <div>
+          <span class="text-sm text-slate-400">Probability:</span>
+          <span id="predicted-prob" class="text-2xl font-bold text-cyan-400 ml-2">--</span>
+        </div>
+      </div>
+
+      <!-- Probability Bar -->
+      <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+        <div id="prob-bar" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full w-0 transition-all duration-500"></div>
+      </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="error-card" class="hidden mt-6 p-4 bg-red-950/50 border border-red-500/50 text-red-300 text-sm rounded-xl"></div>
+
+  </div>
+
+  <script>
+    document.getElementById('prediction-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submit-btn');
+      const resultCard = document.getElementById('result-card');
+      const errorCard = document.getElementById('error-card');
+      
+      errorCard.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Processing...';
+
+      // Gather input feature values
+      const formData = new FormData(e.target);
+      const features = [];
+      for (let i = 1; i <= 10; i++) {
+        features.push(parseFloat(formData.get(`feature_${i}`) || 0));
+      }
+
+      try {
+        const response = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'json' },
+          body: JSON.stringify({ features })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Prediction failed');
+        }
+
+        // Render Results
+        document.getElementById('predicted-class').innerText = data.prediction;
+        document.getElementById('predicted-class').className = data.prediction === 1 ? 'text-2xl font-bold text-emerald-400 ml-2' : 'text-2xl font-bold text-amber-400 ml-2';
+        document.getElementById('predicted-prob').innerText = (data.probability * 100).toFixed(2) + '%';
+        document.getElementById('prob-bar').style.width = (data.probability * 100) + '%';
+        
+        resultCard.classList.remove('hidden');
+      } catch (err) {
+        errorCard.innerText = err.message;
+        errorCard.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Run Prediction';
+      }
+    });
+  </script>
+</body>
+</html>
